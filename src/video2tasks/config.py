@@ -57,7 +57,10 @@ class OpenAIChatConfig(BaseModel):
     api_key: str = Field(default="", description="Bearer API key")
     model: str = Field(default="qwen3.5-397b-a17b", description="Model id")
     timeout_sec: float = Field(default=120.0, description="Request timeout in seconds")
-    max_tokens: int = Field(default=2048, description="max_tokens in chat completions")
+    max_tokens: int = Field(
+        default=2048,
+        description="Output token budget: max_tokens (default) or MiMo maps to max_completion_tokens",
+    )
     headers: dict = Field(default_factory=dict, description="Extra headers")
 
 

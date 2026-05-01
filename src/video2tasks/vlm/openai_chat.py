@@ -39,6 +39,11 @@ def _extract_json(text: str) -> Dict[str, Any]:
     return {}
 
 
+def _is_xiaomi_mimo_openai_base(base_url: str) -> bool:
+    """MiMo（小米）OpenAI 兼容网关：用于选择请求体字段等 MiMo 专用行为。"""
+    return "xiaomimimo.com" in (base_url or "").lower()
+
+
 def _normalize_message_content(content: Any) -> str:
     if content is None:
         return ""
@@ -84,20 +89,32 @@ class OpenAIChatBackend(VLMBackend):
             print("[OpenAIChat] Missing model")
             return {}
 
-        content: List[Dict[str, Any]] = [{"type": "text", "text": prompt}]
+        image_parts: List[Dict[str, Any]] = []
         for img in images:
             data_url = _encode_png_data_url(img)
             if not data_url:
                 continue
-            content.append(
+            image_parts.append(
                 {"type": "image_url", "image_url": {"url": data_url}}
             )
+        text_part: Dict[str, Any] = {"type": "text", "text": prompt}
+        # MiMo 图像理解文档（image-understanding）：示例中 user content 为「先 image_url、后 text」；
+        # 且文档写明当前仅 mimo-v2.5、mimo-v2-omni 支持图像理解（非 Pro）。
+        if _is_xiaomi_mimo_openai_base(self.base_url):
+            content = image_parts + [text_part]
+        else:
+            content = [text_part] + image_parts
 
         payload: Dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": self.max_tokens,
         }
+        # MiMo：官方 first-api-call / openai-api 文档示例使用 max_completion_tokens（非 max_tokens）。
+        # 其它 OpenAI 兼容服务（如 AIHubMix）仍用 max_tokens。
+        if _is_xiaomi_mimo_openai_base(self.base_url):
+            payload["max_completion_tokens"] = self.max_tokens
+        else:
+            payload["max_tokens"] = self.max_tokens
         req_headers: Dict[str, str] = {
             "Content-Type": "application/json",
             **self.headers,

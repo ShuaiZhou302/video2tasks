@@ -73,23 +73,21 @@ python -m video2tasks.cli.validate_config --config config_ours.yaml
 
 ## 工作原理（简要）
 
-1) 数据扫描  
+1. 数据扫描  
 `v2t-server` 会按 `datasets` 扫描 `root/subset`，把每个子目录当作一个 sample，并在 sample 目录里找 `Frame_*.mp4`。
-
-2) 分窗与抽帧  
+2. 分窗与抽帧  
 对每个视频按 `window_sec/step_sec` 切重叠窗口；每个窗口均匀抽 `frames_per_window` 帧，统一缩放为 `target_width/target_height` 后转成 PNG base64。
-
-3) Worker 推理  
+3. Worker 推理  
 `v2t-worker` 从 server 拉窗口任务，调用后端模型（当前是 `openai_chat`）得到 `vlm_json`，核心字段是：
+
 - `transitions`: 窗口内切换点索引
 - `instructions`: 各子任务文字描述
 - `thought`: 可选推理说明
 
-4) 结果落盘  
+1. 结果落盘  
 每个窗口结果会追加写入 `windows.jsonl`（一行一个窗口 JSON）。  
 所有窗口完成后，server 聚合切分点并生成最终 `segments.json`，同时写入 `.DONE` 标记。
-
-5) 断点续跑  
+2. 断点续跑  
 再次启动会跳过已有 `.DONE` 的 sample，只处理未完成部分。
 
 ## `windows.jsonl` 是什么
@@ -100,3 +98,4 @@ python -m video2tasks.cli.validate_config --config config_ours.yaml
   - `window_id`: 窗口编号
   - `vlm_json`: 模型返回的 `thought/transitions/instructions`
 - 最终请看同目录下的 `segments.json`。
+

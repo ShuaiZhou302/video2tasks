@@ -44,6 +44,17 @@ def _is_xiaomi_mimo_openai_base(base_url: str) -> bool:
     return "xiaomimimo.com" in (base_url or "").lower()
 
 
+def _openai_chat_uses_max_completion_tokens(base_url: str, model: str) -> bool:
+    """MiMo 统一用 max_completion_tokens；AIHubMix 仅当模型名为 gpt* 时（OpenAI 系）改用该字段。"""
+    u = (base_url or "").lower()
+    m = (model or "").lower().strip()
+    if "xiaomimimo.com" in u:
+        return True
+    if "aihubmix.com" in u and m.startswith("gpt"):
+        return True
+    return False
+
+
 def _normalize_message_content(content: Any) -> str:
     if content is None:
         return ""
@@ -109,9 +120,8 @@ class OpenAIChatBackend(VLMBackend):
             "model": self.model,
             "messages": [{"role": "user", "content": content}],
         }
-        # MiMo：官方 first-api-call / openai-api 文档示例使用 max_completion_tokens（非 max_tokens）。
-        # 其它 OpenAI 兼容服务（如 AIHubMix）仍用 max_tokens。
-        if _is_xiaomi_mimo_openai_base(self.base_url):
+        # MiMo 全量；AIHubMix 仅 gpt* 模型：网关要求 max_completion_tokens 而非 max_tokens。
+        if _openai_chat_uses_max_completion_tokens(self.base_url, self.model):
             payload["max_completion_tokens"] = self.max_tokens
         else:
             payload["max_tokens"] = self.max_tokens

@@ -15,7 +15,7 @@ OUTPUT_DATA_ROOT="${4:-/data/LFT-W02_data/shuaizhou/human_video_data/video2tasks
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-python "${SCRIPT_DIR}/egodex_process.py" \
+python "${SCRIPT_DIR}/egodex_preprocess.py" \
   --egodex-root "${EGODEX_ROOT}" \
   --output-data-root "${OUTPUT_DATA_ROOT}" \
   --task "${TASK_COUNT}" \
